@@ -1,0 +1,91 @@
+你的项目/
+├── main.py          # 入口：命令行解析、任务调度
+├── app.py           # 图形界面（可选）
+├── module/          # 核心组件
+│   ├── config.py    # 配置管理
+│   ├── logger.py    # 日志
+│   ├── ocr.py       # 文字识别
+│   └── window.py    # 窗口控制
+├── tasks/           # 游戏任务（日常、副本、领取奖励）
+├── utils/           # 工具类（截图、键鼠、图片处理）
+└── assets/          # 模板图（按钮、图标匹配用）
+
+
+
+
+Day4：窗口控制（游戏绑定核心）
+学习：Windows 窗口句柄、查找 / 置顶 / 激活窗口
+库：win32gui/win32con
+实操：写代码找到记事本 / 浏览器窗口并置顶
+Day5：高速截图（只截游戏窗口）
+学习：区域截图、窗口截图
+库：mss/PIL
+实操：写函数截取指定窗口画面并保存
+Day6：图像匹配（找按钮 / 图标）
+学习：OpenCV 模板匹配
+库：opencv-python
+实操：截一张图标，写代码在全屏里找到它的坐标
+Day7：OCR 文字识别（读体力 / 进度）
+学习：文字识别、区域 OCR
+库：PaddleOCR/EasyOCR
+实操：截取游戏文字，识别出内容
+Day8：键鼠模拟（自动操作）
+学习：移动、点击、按键、延时
+库：pyautogui/pynput
+实操：写代码自动打开记事本并输入文字
+Day9：配置 + 日志 + 异常处理
+学习：配置文件、日志记录、错误截图
+库：pyyaml/logging
+实操：复刻 March7th 的日志与报错处理逻辑
+第三阶段：极简自动化 Demo 开发（Day10–14）
+Day10：搭建项目骨架
+实操：新建项目，复刻 March7th 目录结构
+plaintext
+your_assistant/
+├── main.py       # 入口调度
+├── module/       # 窗口/配置/日志/OCR
+├── utils/        # 截图/键鼠/图像匹配
+├── tasks/        # 自动化任务
+└── assets/       # 图标模板
+Day11：实现窗口 + 截图基础功能
+实操：完成module/window.py+utils/screenshot.py
+Day12：实现图像匹配 + 点击
+实操：完成utils/image_match.py+utils/control.py
+Day13：实现单任务自动化
+实操：在tasks/写一个简单任务（自动点击、自动领取）
+Day14：实现任务调度 + 命令行
+实操：完成main.py，支持命令行选任务运行
+第四阶段：完整框架复刻 + 优化（Day15–21）
+Day15：多任务调度（完整运行）
+学习：March7th 的run_main_actions循环逻辑
+实操：支持完整流程与单任务两种模式
+Day16：循环 / 定时 / 等待机制
+实操：加任务循环、加载等待、重试机制
+Day17：异常捕获 + 错误通知
+实操：崩溃自动截图、日志上报、异常退出
+Day18：图形界面（可选）
+学习：简单 GUI（tkinter/qt）
+实操：做一个启动 / 选任务的简易界面
+Day19：项目优化
+实操：提升匹配速度、优化点击精度、固定分辨率适配
+Day20：打包成 EXE
+学习：pyinstaller打包
+实操：把项目打包成独立 exe，无 Python 也能跑
+Day21：测试 + 迭代
+实操：跑通全流程，修复 bug，整理文档
+成果：拥有可套用到任意游戏的自动化辅助框架
+每日固定小任务（10 分钟）
+看一段 March7thAssistant 源码
+写 1 个小功能函数
+运行测试，记录问题
+必备工具清单
+Python 3.10+
+IDE：VS Code
+截图工具：Snipaste
+核心库：pyautogui opencv-python mss win32gui paddleocr
+
+
+
+
+
+
