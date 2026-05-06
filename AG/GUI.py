@@ -832,7 +832,7 @@ class MainWindow(FluentWindow):
         self.main_dungeon_list.itemSelectionChanged.connect(self.save_config)
         self.sub_dungeon_list.itemSelectionChanged.connect(self.save_config)
         self.main_dungeon_list.currentItemChanged.connect(self.update_main_dungeon_level)
-        self.main_dungeon_list.currentItemChanged.connect(self.update_sub_dungeon_level)
+        self.sub_dungeon_list.currentItemChanged.connect(self.update_sub_dungeon_level)
         self.main_dengeon_level_spin.valueChanged.connect(lambda v: setattr(self, 'main_dungeon_level', v))
         self.sub_dengeon_level_spin.valueChanged.connect(lambda v: setattr(self, 'sub_dungeon_level', v))
         self.main_dengeon_level_spin.valueChanged.connect(self.save_config)
