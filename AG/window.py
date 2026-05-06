@@ -1,6 +1,5 @@
 import win32gui
 import win32con
-import pyautogui
 import psutil
 import os
 import subprocess
@@ -137,7 +136,7 @@ class WindowRect(Start):
 
         if not self.hwnd:
             log.Log("坐标获取失败", level='ERROR')
-            return None
+            raise ValueError(f"窗口获取失败，请检查游戏进程！")
         
         
         #(左,上,右,下)

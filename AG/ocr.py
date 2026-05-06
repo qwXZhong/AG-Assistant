@@ -1,6 +1,5 @@
 from rapidocr_onnxruntime import RapidOCR
 import log
-from Automatic import Automatic
 import cv2
 import gc
 

@@ -1,9 +1,6 @@
 # 该文件用来执行行为决策
 from Automatic import Automatic
 import log
-from window import WindowRect
-import win32api
-import win32con
 import time
 from ocr import GameOCR
 

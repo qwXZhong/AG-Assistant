@@ -1,0 +1,1 @@
+pyinstaller -D --windowed --uac-admin --name "AG Assistant" --icon AG.ico --collect-all rapidocr_onnxruntime

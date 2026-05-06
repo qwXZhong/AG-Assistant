@@ -1,18 +1,13 @@
-import win32gui
 import win32con
-import win32ui
 import win32api
-import ctypes
 import cv2
 import numpy as np
 from mss import mss
-from PIL import Image
 import log
-import pyautogui
 import time
 
 
-from window import Start, WindowRect
+from window import WindowRect
 
 class Automatic(WindowRect):
     def __init__(self, title, game_path, process_name):

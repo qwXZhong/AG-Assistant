@@ -1,9 +1,9 @@
-import sys
 import os
 import configparser
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QLineEdit, QFileDialog, QCheckBox, QListWidget, QPlainTextEdit, QSpinBox,
+    QMessageBox
 )
 from PyQt6.QtCore import Qt, QSize,  QThread, pyqtSignal
 from PyQt6.QtGui import QPixmap, QTextCursor, QFont
@@ -12,7 +12,7 @@ from qfluentwidgets import (
     NavigationItemPosition, SwitchButton, ComboBox
 )
 from log import Log
-
+import traceback
 
 
 class MainWindow(FluentWindow): 
@@ -922,6 +922,13 @@ class MainWindow(FluentWindow):
                 cursor = self.log_text.textCursor()
                 cursor.movePosition(QTextCursor.MoveOperation.End)
                 self.log_text.setTextCursor(cursor)
+                
+    def show_error_dialog(self, error_msg):
+        QMessageBox.critical(
+            self,
+            "致命错误",
+            f"{error_msg}"
+        )
 
     # 启动进程
     def start_game(self):
@@ -964,11 +971,18 @@ class MainWindow(FluentWindow):
 # 线程类
 class TaskThread(QThread):
     """专门跑 task 的线程"""
+    # 异常捕获
+    error_singal = pyqtSignal(str, str)
     
     def __init__(self, main_window, select_task):
         super().__init__()
         self.main_window = main_window  # 保存 MainWindow 的引用
         self.select_task = select_task
+        
+        # 连接异常信号到日志窗口
+        self.error_singal.connect(Log)
+        self.error_singal.connect(lambda error_msg, _: self.main_window.show_error_dialog(error_msg))
+        
         from task import Task
         mode_translate = {
             "扫荡": "mopup"
@@ -1012,20 +1026,22 @@ class TaskThread(QThread):
 
     def run(self):
         """线程执行的入口"""
-        
-        if self.select_task == "oneDragon":
-            self.main_window.start_game()
-            self.oneDragon()
-        elif self.select_task == 'communication':
-            import time
-            self.main_window.start_game()
-            time.sleep(self.t.interval_time)
-            self.t.login()
-            time.sleep(self.t.interval_time)
-            self.t.re_main_ui()
-            self.communication()
-        
-        
+        try:
+            if self.select_task == "oneDragon":
+                self.main_window.start_game()
+                self.oneDragon()
+            elif self.select_task == 'communication':
+                import time
+                self.main_window.start_game()
+                time.sleep(self.t.interval_time)
+                self.t.login()
+                time.sleep(self.t.interval_time)
+                self.t.re_main_ui()
+                self.communication()
+        except Exception as e:
+            error_msg = f"【子线程异常】{self.select_task} 任务失败：\n{traceback.format_exc()}"
+            self.error_singal.emit(error_msg, 'CRITICAL')
+
         
     def oneDragon(self):
         from log import Log
