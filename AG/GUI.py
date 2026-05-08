@@ -69,9 +69,11 @@ class MainWindow(FluentWindow):
         
         
         # 任务参数设置
-        self.interval_time = 2
+        self.task_interval_time = 2
         self.ocr_use_gpu = False
         self.ocr_collect_time = 20
+        self.screenshot_cnt = 50
+        self.time_out = 10
         self.template_resolution = "1920*1200"
 
         # ========== 初始化配置文件相关 ==========
@@ -219,9 +221,11 @@ class MainWindow(FluentWindow):
         self.target_com = target_com_val  # 同步到类变量
 
         # 任务参数设置
-        self.interval_time = getattr(self, 'interval_time_layout_QSpinBox', None).value() if hasattr(self, 'interval_time_layout_QSpinBox') else self.interval_time
+        self.task_interval_time = getattr(self, 'task_interval_time_layout_QSpinBox', None).value() if hasattr(self, 'task_interval_time_layout_QSpinBox') else self.task_interval_time
         self.ocr_use_gpu = getattr(self, 'ocr_use_gpu_switch', None).isChecked() if hasattr(self, 'ocr_use_gpu_switch') else self.ocr_use_gpu
         self.ocr_collect_time = getattr(self, 'ocr_collect_time_QSpinBox', None).value() if hasattr(self, 'ocr_collect_time_QSpinBox') else self.ocr_collect_time
+        self.screenshot_cnt = getattr(self, 'screenshot_cnt_QSpinBox', None).value() if hasattr(self, 'screenshot_cnt_QSpinBox') else self.screenshot_cnt
+        self.time_out = getattr(self, 'time_out_QSpinBox', None).value() if hasattr(self, 'time_out_QSpinBox') else self.time_out
         self.template_resolution = getattr(self, 'template_resolution_ComboBox', None).currentText() if hasattr(self, 'template_resolution_ComboBox') else self.template_resolution
 
 
@@ -264,9 +268,11 @@ class MainWindow(FluentWindow):
         self.config.set("OtherTask", "target_com", self.target_com)
 
         # 任务参数设置
-        self.config.set("SETTINGS", "interval_time", str(self.interval_time))
+        self.config.set("SETTINGS", "task_interval_time", str(self.task_interval_time))
         self.config.set("SETTINGS", "ocr_use_gpu", str(self.ocr_use_gpu))
         self.config.set("SETTINGS", "ocr_collect_time", str(self.ocr_collect_time))
+        self.config.set("SETTINGS", "screenshot_cnt", str(self.screenshot_cnt))
+        self.config.set("SETTINGS", "time_out", str(self.time_out))
         self.config.set("SETTINGS", "template_resolution", self.template_resolution)
 
         # 写入文件
@@ -311,9 +317,11 @@ class MainWindow(FluentWindow):
             self.is_exhausted_com = self.config.getboolean("OtherTask", "is_exhausted_com", fallback=True)
             self.target_com = self.config.get("OtherTask", "target_com", fallback="0")
             # 任务参数设置
-            self.interval_time = self.config.getint("SETTINGS", "interval_time", fallback=2)
+            self.task_interval_time = self.config.getint("SETTINGS", "task_interval_time", fallback=2)
             self.ocr_use_gpu = self.config.getboolean("SETTINGS", "ocr_use_gpu", fallback=False)
             self.ocr_collect_time = self.config.getint("SETTINGS", "ocr_collect_time", fallback=20)
+            self.screenshot_cnt = self.config.getint("SETTINGS", "screenshot_cnt", fallback=50)
+            self.time_out = self.config.getint("SETTINGS", "time_out", fallback=10)
             self.template_resolution = self.config.get("SETTINGS", "template_resolution", fallback="1920*1200")
             
             
@@ -347,9 +355,11 @@ class MainWindow(FluentWindow):
             # 日志设置
             self.debug_log = False
             # 任务参数设置
-            self.interval_time = 2
+            self.task_interval_time = 2
             self.ocr_use_gpu = False
             self.ocr_collect_time = 20
+            self.screenshot_cnt = 50
+            self.time_out = 10
             self.template_resolution = "1920*1200"
 
     # ========== 界面初始化 ==========
@@ -756,18 +766,18 @@ class MainWindow(FluentWindow):
         task_parameter_title_layout.addWidget(QLabel("任务参数设置", self.setInterface))
         task_parameter_layout.addLayout(task_parameter_title_layout)
         # 操作间隔时间
-        interval_time_layout = QHBoxLayout()
-        interval_time_label = QLabel("操作间隔时间\n解释：该参数调整的是操作与操作间的间隔，如果发现游戏的页面加载时间较长，可以尝试增加该值", self.setInterface)
-        interval_time_layout.addWidget(interval_time_label)
-        interval_time_layout.addStretch(1)
+        task_interval_time_layout = QHBoxLayout()
+        task_interval_time_label = QLabel("任务与任务间隔时间\n解释：该参数调整的是任务与任务间的间隔以及某些操作的间隔，如果发现游戏的页面加载时间较长，可以尝试增加该值", self.setInterface)
+        task_interval_time_layout.addWidget(task_interval_time_label)
+        task_interval_time_layout.addStretch(1)
         
-        self.interval_time_layout_QSpinBox = QSpinBox(self.setInterface)
-        self.interval_time_layout_QSpinBox.setRange(1, 5)
-        self.interval_time_layout_QSpinBox.setValue(self.interval_time)
-        self.interval_time_layout_QSpinBox.setSuffix(" s")
-        interval_time_layout.addWidget(self.interval_time_layout_QSpinBox)
+        self.task_interval_time_layout_QSpinBox = QSpinBox(self.setInterface)
+        self.task_interval_time_layout_QSpinBox.setRange(1, 5)
+        self.task_interval_time_layout_QSpinBox.setValue(self.task_interval_time)
+        self.task_interval_time_layout_QSpinBox.setSuffix(" s")
+        task_interval_time_layout.addWidget(self.task_interval_time_layout_QSpinBox)
         
-        task_parameter_layout.addLayout(interval_time_layout)
+        task_parameter_layout.addLayout(task_interval_time_layout)
         
         # ocr模型是否启用GPU加速
         ocr_use_gpu_layout = QHBoxLayout()
@@ -793,6 +803,32 @@ class MainWindow(FluentWindow):
         ocr_collect_time_layout.addWidget(self.ocr_collect_time_QSpinBox)
         
         task_parameter_layout.addLayout(ocr_collect_time_layout)
+        
+        # 每秒截图次数
+        screenshot_cnt_layout = QHBoxLayout()
+        
+        screenshot_cnt_layout.addWidget(QLabel("每秒截图次数"))
+        screenshot_cnt_layout.addStretch(1)
+        self.screenshot_cnt_QSpinBox = QSpinBox(self.setInterface)
+        self.screenshot_cnt_QSpinBox.setRange(10, 99)
+        self.screenshot_cnt_QSpinBox.setSuffix(" 次")
+        self.screenshot_cnt_QSpinBox.setValue(self.screenshot_cnt)
+        screenshot_cnt_layout.addWidget(self.screenshot_cnt_QSpinBox)
+        
+        task_parameter_layout.addLayout(screenshot_cnt_layout)
+        
+        # 界面等待超时时间
+        time_out_layout = QHBoxLayout()
+        
+        time_out_layout.addWidget(QLabel("界面等待超时时间"))
+        time_out_layout.addStretch(1)
+        self.time_out_QSpinBox = QSpinBox(self.setInterface)
+        self.time_out_QSpinBox.setRange(1, 20)
+        self.time_out_QSpinBox.setSuffix(" s")
+        self.time_out_QSpinBox.setValue(self.time_out)
+        time_out_layout.addWidget(self.time_out_QSpinBox)
+        
+        task_parameter_layout.addLayout(time_out_layout)
         
         # 游戏分辨率
         template_resolution_layout = QHBoxLayout()
@@ -851,9 +887,11 @@ class MainWindow(FluentWindow):
         self.is_exhausted_com_switch.checkedChanged.connect(self.toggle_com_input)
         self.target_com_input.textChanged.connect(self.save_config)
         # 任务参数设置
-        self.interval_time_layout_QSpinBox.valueChanged.connect(self.save_config)
+        self.task_interval_time_layout_QSpinBox.valueChanged.connect(self.save_config)
         self.ocr_use_gpu_switch.checkedChanged.connect(self.save_config)
         self.ocr_collect_time_QSpinBox.valueChanged.connect(self.save_config)
+        self.screenshot_cnt_QSpinBox.valueChanged.connect(self.save_config)
+        self.time_out_QSpinBox.valueChanged.connect(self.save_config)
         self.template_resolution_ComboBox.currentTextChanged.connect(self.save_config)
 
     # ========== 业务方法 ==========
@@ -951,7 +989,7 @@ class MainWindow(FluentWindow):
         # 创建并启动线程
         if not hasattr(self, 'task_thread') or not self.task_thread.isRunning():
             self.task_thread = TaskThread(self, "oneDragon")
-            self.task_thread.start() # 拉起新的进程，调用run()
+            self.task_thread.start() # 拉起新的线程，调用run()
         else:
             Log("任务正在运行中，请勿重复点击！", level="ERROR")
             
@@ -962,11 +1000,12 @@ class MainWindow(FluentWindow):
         # 创建并启动线程
         if not hasattr(self, 'task_thread') or not self.task_thread.isRunning():
             self.task_thread = TaskThread(self, "communication")
-            self.task_thread.start() # 拉起新的进程，调用run()
+            self.task_thread.start() # 拉起新的线程，调用run()
         else:
             Log("任务正在运行中，请勿重复点击！", level="ERROR")
         
-
+import threading
+from pynput import keyboard
 
 # 线程类
 class TaskThread(QThread):
@@ -982,6 +1021,14 @@ class TaskThread(QThread):
         # 连接异常信号到日志窗口
         self.error_singal.connect(Log)
         self.error_singal.connect(lambda error_msg, _: self.main_window.show_error_dialog(error_msg))
+        
+        self.pause_event = threading.Event()
+        self.stop_event = threading.Event()
+        self.pause_event.set()
+        
+        
+        
+        self.keyboard_listener = None
         
         from task import Task
         mode_translate = {
@@ -1002,10 +1049,13 @@ class TaskThread(QThread):
             standby_target_number=self.main_window.main_dungeon_level,
             joint_is_refresh=self.main_window.joint_is_refresh,
             joint_must_s=self.main_window.joint_must_s,
-            interval_time=self.main_window.interval_time,
+            interval_time=1 / self.main_window.screenshot_cnt,
             ocr_use_gpu=self.main_window.ocr_use_gpu,
             ocr_collect_time=self.main_window.ocr_collect_time,
-            template_resolution=self.main_window.template_resolution
+            template_resolution=self.main_window.template_resolution,
+            time_out=self.main_window.time_out,
+            task_interval_time=self.main_window.task_interval_time,
+            pause_stop_check=self.check_state
         )
         
         self.t.taskdic = {
@@ -1024,8 +1074,56 @@ class TaskThread(QThread):
             "邮件": self.main_window.is_mail
         }
 
+    def on_key_press(self, key):
+        '''全局监听'''
+        try:
+            if key == keyboard.Key.f9:
+                self.toggle_pause()
+            elif key == keyboard.Key.f10:
+                self.stop_task()
+        except Exception as e:
+            Log(f"键盘监听失败\n {e}")
+
+    def start_key_listener(self):
+        '''启动键盘监听'''
+        self.keyboard_listener = keyboard.Listener(on_press=self.on_key_press)
+        self.keyboard_listener.daemon = True # 自动销毁
+        self.keyboard_listener.start()
+    
+    def stop_key_listener(self):
+        '''停止键盘监听'''
+        if self.keyboard_listener:
+            self.keyboard_listener.stop()
+            
+    def toggle_pause(self):
+        '''切换暂停/继续'''
+        if self.pause_event.is_set():
+            self.pause_event.clear() # 暂停
+            Log("任务已暂停", level="WARNING")
+        else:
+            self.pause_event.set()
+            Log("任务已恢复", level="WARNING")
+            
+    def stop_task(self):
+        '''停止任务'''
+        self.stop_event.set()
+        self.pause_event.set()
+        Log("准备关闭当前线程", level="WARNING")
+        self.stop_key_listener()
+        
+    def check_state(self):
+        self.pause_event.wait() # 阻塞
+        
+        if self.stop_event.is_set():
+            raise SystemExit()
+        
+        
+            
     def run(self):
         """线程执行的入口"""
+        self.start_key_listener()
+        self.main_window.append_log("任务启动 | F9=暂停/继续 | F10=停止")
+        
         try:
             if self.select_task == "oneDragon":
                 self.main_window.start_game()
@@ -1037,11 +1135,24 @@ class TaskThread(QThread):
                 self.t.login()
                 time.sleep(self.t.interval_time)
                 self.t.re_main_ui()
-                self.communication()
+                self.communication()                  
+        except SystemExit:
+            Log("线程已停止")
         except Exception as e:
             error_msg = f"【子线程异常】{self.select_task} 任务失败：\n{traceback.format_exc()}"
             self.error_singal.emit(error_msg, 'CRITICAL')
-
+        
+        finally:
+            # 收尾
+            self.stop_key_listener()
+            self.pause_event.set()
+            self.stop_event.clear()
+            # 重置按钮
+            try:
+                self.main_window.pause_btn.setEnabled(False)
+                self.main_window.stop_btn.setEnabled(False)
+            except:
+                pass
         
     def oneDragon(self):
         from log import Log
@@ -1061,3 +1172,6 @@ class TaskThread(QThread):
         
         Log("==============联防协议执行完毕==============")
 
+    
+  
+    

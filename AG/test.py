@@ -52,18 +52,19 @@ if __name__ == "__main__":
         game_path=path,
         process_name=pn,
         target="联合特勤",
-        number=3,
-        consume_power=-1,
+        number=1,
+        consume_power=160,
         is_exhausted=True,
-        joint_must_s=True,
+        joint_must_s=False,
         template_resolution='1920*1200',
+        is_standby=False,
         standby_target='联防协议',
         standby_target_number=3
     )
 
     t.taskdic = {
             "登录界面": True,
-            "每日活跃度": False,
+            "每日活跃度": True,
         }
 
     t.act_dic = {
@@ -79,13 +80,15 @@ if __name__ == "__main__":
         }
 
     # t.clear_power('酬金委托', 1, use_class_parameter=False,is_exhausted=True)
-    # t.all_task()
+    t.all_task()
     # t.clear_power("联防协议", 3 , is_exhausted=True, use_class_parameter=False)
     # t.garden()
     
     #t.joint_defense_disorder(mode='mopup', consume_communication=25)
     #t.monthly_pass()
     # t.mail()
+    # t.re_main_ui()
+    # t.joint_defense_disorder(consume_communication=-1)
     
 
     name_dic = {

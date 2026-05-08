@@ -10,16 +10,32 @@ import time
 from window import WindowRect
 
 class Automatic(WindowRect):
-    def __init__(self, title, game_path, process_name):
+    def __init__(self, title, game_path, process_name,  time_out=10, interval_time=0.02, pause_stop_check=None):
         WindowRect.__init__(self, title, game_path, process_name)
         self.myMss = None
-
+        self.time_out = time_out
+        self.interval_time = interval_time
+        self.pause_stop_check = pause_stop_check
+        
+    def check_pause_stop(self):
+        """安全调用检查函数，实时响应暂停/停止"""
+        if self.pause_stop_check is not None:
+            try:
+                self.pause_stop_check()
+            except SystemExit:
+                raise
+            except Exception as e:
+                log.Log(f"检查暂停/停止失败: {e}", level="DEBUG")
+        
+        
     def init_mss(self):
         if self.myMss is None:
             self.myMss = mss()
 
     # 获取游戏内截图
     def get_game_screenshot(self):
+        self.check_pause_stop()
+        
         # 更换为MSS
         rect = self.get_window_rect()
         if not rect:
@@ -37,6 +53,8 @@ class Automatic(WindowRect):
     # isCut是否指定匹配位置（是否指定区域）， pos=[x1,y1,x2,y2] 左上角和右下角的坐标
     # 若边界传入的数值越界，自动使用边界值
     def best_template(self, template_path, isCut=False, pos=None, threshold=0.8):
+        self.check_pause_stop()
+        
         # 待匹配图片
         img = self.get_game_screenshot()
         if img is None or img.size == 0:
@@ -89,8 +107,51 @@ class Automatic(WindowRect):
 
         return center_x, center_y
     
+    def wait(self, template_path, isCut=False, pos=None, threshold=0.8, time_out=None, is_Log=True):
+        '''
+        等待指定元素并且点击
+        time_out 超时时间,不传使用类参数
+        is_Log 超时时是否输出Log
+        '''
+        if time_out is None:
+            time_out = self.time_out
+        
+        start_time = time.time()
+        while True:
+            self.check_pause_stop()
+            
+            if self.best_template(template_path, isCut, pos, threshold) is not None:
+                break
+            if time.time() - start_time > time_out:
+                if is_Log:
+                    log.Log("等待界面超时", level="ERROR")
+                return False
+                
+            time.sleep(self.interval_time)
+            
+        return True
+    
+    
+    def wait_and_click(self, template_path, px, py, flag=True, isCut=False, pos=None, threshold=0.8, time_out=None, is_Log=True, delay_click=0):
+        '''
+        等待指定元素并且点击
+        time_out 超时时间,不传使用类参数
+        is_Log 超时时是否输出Log
+        '''
+        if self.wait(template_path, isCut, pos, threshold, time_out, is_Log):
+            time.sleep(delay_click)
+            return self.auto_click(template_path, px, py, flag, isCut, pos, threshold)
+        return False
+    
+    def wait_and_keyboard(self, key, template_path, isCut=False, pos=None, threshold=0.8, time_out=None, is_Log=True):
+        if self.wait(template_path, isCut, pos, threshold, time_out, is_Log):
+            self.auto_keyboard(key)
+            
+    
     # 自动点击,flag=True进行模板匹配(px,py)为偏移量，否则直接点击目标点(px,py)
     def auto_click(self, template_path, px, py, flag=True, isCut=False, pos=None, threshold=0.8):
+        self.check_pause_stop()
+        
         rect = self.get_window_rect()
         if rect is None:
             log.Log(f"窗口坐标获取失败", level='DEBUG')
@@ -98,11 +159,13 @@ class Automatic(WindowRect):
         left, top, right, bottom = rect
         
         if flag:
-            if self.best_template(template_path, isCut, pos, threshold) is None:
+            xy = self.best_template(template_path, isCut, pos, threshold)
+            if xy is None:
                 #log.Log(f'点击失败', level='DEBUG')
                 return False
+            
                 
-            x, y = self.best_template(template_path, isCut, pos, threshold)
+            x, y = xy
                 
             x = x + left + px
             y = y + top + py
@@ -116,20 +179,26 @@ class Automatic(WindowRect):
         # 点击(相对位移x，y，滚轮，事件，额外信息)
         time.sleep(0.5)
         win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0)
-        time.sleep(0.05)
+        time.sleep(0.2)
         win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
+        time.sleep(0.2)
         # win32api.mouse_event(dx=0, dy=0, dwData=0, dwFlags=win32con.MOUSEEVENTF_LEFTDOWN, dwExtraInfo=0)
         # win32api.mouse_event(dx=0, dy=0, dwData=0, dwFlags=win32con.MOUSEEVENTF_LEFTUP, dwExtraInfo=0)
         return True
 
 
     def auto_keyboard(self, key):
+        self.check_pause_stop()
+        
+        time.sleep(0.5)
         win32api.keybd_event(key, 0, 0, 0)
-        time.sleep(0.05)
+        time.sleep(0.2)
         win32api.keybd_event(key, 0, 2, 0)
 
     # 滚轮操作
     def auto_wheel(self, cnt, distance, px, py):
+        self.check_pause_stop()
+        
         if self.auto_move_mouse(px, py):
             time.sleep(1)
             for _ in range(cnt):
@@ -140,6 +209,8 @@ class Automatic(WindowRect):
 
     # 移动鼠标到指定位置
     def auto_move_mouse(self, px, py):
+        self.check_pause_stop()
+        
         rect = self.get_window_rect()
         if rect is None:
             log.Log(f"窗口坐标获取失败", level='DEBUG')
@@ -151,7 +222,7 @@ class Automatic(WindowRect):
 
         log.Log(f"尝试移动鼠标到：({x}, {y})", level='DEBUG')
         win32api.SetCursorPos((x, y))
-
+        time.sleep(0.2)
         return True
         
 

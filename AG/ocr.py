@@ -118,8 +118,6 @@ class GameOCR():
         
         return None
 
-        
-
 
 
 
