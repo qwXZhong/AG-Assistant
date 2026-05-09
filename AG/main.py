@@ -1,4 +1,4 @@
-from GUI import MainWindow, QApplication
+from GUI import MainWindow, QApplication, QIcon
 import sys
 import traceback
 from log import Log
@@ -22,6 +22,7 @@ if __name__ == '__main__':
     sys.excepthook = global_exception_hook
     
     app = QApplication(sys.argv)
+    app.setWindowIcon(QIcon("AG.ico"))
     window = MainWindow()
     window.show()
     sys.exit(app.exec())

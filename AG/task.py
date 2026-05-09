@@ -950,7 +950,7 @@ class Task(Automatic, GameOCR):
                     current_power, min_power = cm_power
 
                     # 当前体力是否完成
-                    if consume_power != -1:
+                    if not is_exhausted:
                         if consume_power < min_power:
                             log.Log(f"目标体力任务已完成，本次清理{all_used_power}吨吨值")
                             break

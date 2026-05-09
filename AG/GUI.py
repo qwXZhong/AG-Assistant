@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
     QMessageBox
 )
 from PyQt6.QtCore import Qt, QSize,  QThread, pyqtSignal
-from PyQt6.QtGui import QPixmap, QTextCursor, QFont, QKeyEvent
+from PyQt6.QtGui import QPixmap, QTextCursor, QFont, QKeyEvent, QIcon
 from qfluentwidgets import (
     FluentWindow, PushButton, FluentIcon, IconWidget,
     NavigationItemPosition, SwitchButton, ComboBox, ToolTipFilter
@@ -181,6 +181,7 @@ class MainWindow(FluentWindow):
         global_font = QFont("Microsoft YaHei")
         global_font.setPointSize(10)
         QApplication.instance().setFont(global_font)
+        self.setWindowIcon(QIcon("AG.ico"))
         
         # ========== 先初始化所有核心变量（避免属性未定义） ==========
         # 游戏路径
@@ -200,7 +201,7 @@ class MainWindow(FluentWindow):
         self.sub_dungeon = "模拟作战"        # 备用副本（默认值）
         self.main_dungeon_level = 1          # 主副本等级（默认值） 
         self.sub_dungeon_level = 1           # 备用副本等级（默认值）
-        self.deplete_power = False           # 是否耗尽体力
+        self.deplete_power = True           # 是否耗尽体力
         self.target_power = "0"            # 目标体力（默认值）
         self.dungeon_max_level = {
             "酬金委托": 5,
@@ -375,7 +376,7 @@ class MainWindow(FluentWindow):
         self.target_power = target_power_val  # 同步到类变量
         
         # 一条龙特殊设置
-        self.is_standby = getattr(self, 'is_standby_switch', None).isChecked() if hasattr(self, 'is_standby_switch') else self.deplete_power
+        self.is_standby = getattr(self, 'is_standby_switch', None).isChecked() if hasattr(self, 'is_standby_switch') else self.is_standby
         self.joint_is_refresh = getattr(self, 'joint_is_refresh_switch', None).isChecked() if hasattr(self, 'joint_is_refresh_switch') else self.joint_is_refresh
         self.joint_must_s = getattr(self, 'joint_must_s_switch', None).isChecked() if hasattr(self, 'joint_must_s_switch') else self.joint_must_s
         self.mode = getattr(self, 'mode_ComboBox', None).currentText() if hasattr(self, 'mode_ComboBox') else self.mode
@@ -486,8 +487,8 @@ class MainWindow(FluentWindow):
             self.sub_dungeon = self.config.get("POWER", "sub_dungeon", fallback="模拟作战")
             self.main_dungeon_level = self.config.getint("POWER", "main_dungeon_level", fallback=1)
             self.sub_dungeon_level = self.config.getint("POWER", "sub_dungeon_level", fallback=1)
-            self.deplete_power = self.config.getboolean("POWER", "deplete_power", fallback=False)
-            self.target_power = self.config.get("POWER", "target_power", fallback="100")
+            self.deplete_power = self.config.getboolean("POWER", "deplete_power", fallback=True)
+            self.target_power = self.config.get("POWER", "target_power", fallback="0")
             # 一条龙特殊设置
             self.is_standby = self.config.getboolean("onedragonSpcial", "is_standby", fallback=True)
             self.joint_is_refresh = self.config.getboolean("onedragonSpcial", "joint_is_refresh", fallback=True)
@@ -531,8 +532,8 @@ class MainWindow(FluentWindow):
             self.sub_dungeon = "模拟作战"
             self.main_dungeon_level = 1
             self.sub_dungeon_level =1
-            self.deplete_power = False
-            self.target_power = "100"
+            self.deplete_power = True
+            self.target_power = "0"
             # 一条龙特殊设置
             self.is_standby = True
             self.joint_is_refresh = True
