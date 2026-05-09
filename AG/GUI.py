@@ -6,13 +6,173 @@ from PyQt6.QtWidgets import (
     QMessageBox
 )
 from PyQt6.QtCore import Qt, QSize,  QThread, pyqtSignal
-from PyQt6.QtGui import QPixmap, QTextCursor, QFont
+from PyQt6.QtGui import QPixmap, QTextCursor, QFont, QKeyEvent
 from qfluentwidgets import (
     FluentWindow, PushButton, FluentIcon, IconWidget,
-    NavigationItemPosition, SwitchButton, ComboBox
+    NavigationItemPosition, SwitchButton, ComboBox, ToolTipFilter
 )
 from log import Log
 import traceback
+
+
+class ShortcutEdit(PushButton):
+    """快捷键输入控件，点击后监听键盘输入"""
+    # 信号：快捷键改变时发射(新快捷键, 旧快捷键)
+    shortcut_changed = pyqtSignal(str, str)
+    
+    def __init__(self, default_shortcut="", parent=None):
+        super().__init__(parent)
+        self._is_listening = False
+        self._current_shortcut = default_shortcut
+        self._modifiers = set()  # 存储当前按下的修饰键
+        
+        # 初始化显示
+        self.setText(self._format_shortcut(default_shortcut))
+        self.setFixedWidth(150)
+        self.installEventFilter(ToolTipFilter(self))
+        self.setToolTip("点击设置快捷键，按ESC取消")
+        
+        # 修饰键映射
+        self._modifier_map = {
+            Qt.Key.Key_Control: "Ctrl",
+            Qt.Key.Key_Shift: "Shift",
+            Qt.Key.Key_Alt: "Alt",
+            Qt.Key.Key_Meta: "Win"
+        }
+        
+        # 特殊键映射
+        self._special_key_map = {
+            Qt.Key.Key_Escape: "ESC",
+            Qt.Key.Key_Return: "Enter",
+            Qt.Key.Key_Backspace: "Backspace",
+            Qt.Key.Key_Tab: "Tab",
+            Qt.Key.Key_Space: "Space",
+            Qt.Key.Key_Up: "↑",
+            Qt.Key.Key_Down: "↓",
+            Qt.Key.Key_Left: "←",
+            Qt.Key.Key_Right: "→",
+            Qt.Key.Key_Delete: "Delete",
+            Qt.Key.Key_Insert: "Insert",
+            Qt.Key.Key_Home: "Home",
+            Qt.Key.Key_End: "End",
+            Qt.Key.Key_PageUp: "PageUp",
+            Qt.Key.Key_PageDown: "PageDown"
+        }
+        
+        # F键映射
+        for i in range(1, 13):
+            self._special_key_map[getattr(Qt.Key, f"Key_F{i}")] = f"F{i}"
+
+    def keyPressEvent(self, event: QKeyEvent):
+        if not self._is_listening:
+            return super().keyPressEvent(event)
+            
+        key = event.key()
+        
+        # 按ESC取消监听
+        if key == Qt.Key.Key_Escape:
+            self._stop_listening()
+            return
+            
+        # 记录修饰键
+        if key in self._modifier_map:
+            self._modifiers.add(key)
+            self._update_listening_text()
+            return
+            
+        # 普通键：组合成快捷键
+        modifiers = sorted(self._modifiers, key=lambda k: list(self._modifier_map.keys()).index(k))
+        shortcut_parts = [self._modifier_map[m] for m in modifiers]
+        
+        # 处理特殊键
+        if key in self._special_key_map:
+            shortcut_parts.append(self._special_key_map[key])
+        else:
+            if Qt.Key.Key_A <= key <= Qt.Key.Key_Z:
+                # 字母键：强制转大写
+                char = chr(key - Qt.Key.Key_A + ord('A'))
+                shortcut_parts.append(char)
+            elif Qt.Key.Key_0 <= key <= Qt.Key.Key_9:
+                # 数字键
+                char = chr(key - Qt.Key.Key_0 + ord('0'))
+                shortcut_parts.append(char)
+            else:
+                # 无效按键
+                return
+        
+        # 生成最终快捷键字符串
+        new_shortcut = "+".join(shortcut_parts)
+        
+        # 不允许只设置修饰键
+        if len(shortcut_parts) == 1 and shortcut_parts[0] in self._modifier_map.values():
+            return
+            
+        # 更新快捷键
+        old_shortcut = self._current_shortcut
+        self._current_shortcut = new_shortcut
+        self.shortcut_changed.emit(new_shortcut, old_shortcut)
+        
+        # 停止监听
+        self._stop_listening()
+
+    def keyReleaseEvent(self, event: QKeyEvent):
+        if self._is_listening:
+            key = event.key()
+            if key in self._modifiers:
+                self._modifiers.discard(key)
+                self._update_listening_text()
+        return super().keyReleaseEvent(event)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            if not self._is_listening:
+                self._start_listening()
+        return super().mousePressEvent(event)
+
+    def _start_listening(self):
+        """开始监听键盘输入"""
+        self._is_listening = True
+        self._modifiers.clear()
+        self.setText("按下任意键...")
+        self.setStyleSheet("background-color: #0078d4; color: white;")
+        self.setFocus()
+
+    def _stop_listening(self):
+        """停止监听键盘输入"""
+        self._is_listening = False
+        self._modifiers.clear()
+        self.setText(self._format_shortcut(self._current_shortcut))
+        self.setStyleSheet("")  # 恢复默认样式
+
+    def _update_listening_text(self):
+        """更新监听状态下的显示文本"""
+        if self._modifiers:
+            parts = [self._modifier_map[m] for m in sorted(self._modifiers)]
+            self.setText("+".join(parts) + "+...")
+        else:
+            self.setText("按下任意键...")
+
+    def _format_shortcut(self, shortcut: str) -> str:
+        """格式化快捷键显示"""
+        if not shortcut:
+            return "未设置"
+        return shortcut
+
+    def get_shortcut(self) -> str:
+        """获取当前快捷键"""
+        return self._current_shortcut
+
+    def set_shortcut(self, shortcut: str):
+        """设置快捷键"""
+        self._current_shortcut = shortcut
+        self.setText(self._format_shortcut(shortcut))
+
+    def reset_to_default(self, default: str):
+        """重置为默认快捷键"""
+        old_shortcut = self._current_shortcut
+        self._current_shortcut = default
+        self.shortcut_changed.emit(default, old_shortcut)
+        self.setText(self._format_shortcut(default))
 
 
 class MainWindow(FluentWindow): 
@@ -68,6 +228,9 @@ class MainWindow(FluentWindow):
         self.is_exhausted_com = True
         self.target_com = "0"
         
+        # 快捷键
+        self.pause_shortcut = "F9"
+        self.stop_shortcut = "F10"
         
         # 任务参数设置
         self.task_interval_time = 2
@@ -92,6 +255,7 @@ class MainWindow(FluentWindow):
         self._init_home_ui()               # 初始化首页UI
         self._init_oneDragon_setting_ui()     # 初始化一条龙设置UI
         self._init_other_task_ui()
+        self._init_shortcut_key_ui()
         self._init_settings_ui()           # 初始化设置页UI（创建所有界面元素）
         self._bind_signals()               # 最后统一绑定信号（避免初始化时触发save_config）
 
@@ -113,6 +277,8 @@ class MainWindow(FluentWindow):
         self.oneDragonInterface.setObjectName("oneDragonInterface")
         self.otherTaskInterface = QWidget()
         self.otherTaskInterface.setObjectName("otherTaskInterface")
+        self.shortcutKeyInterface = QWidget()
+        self.shortcutKeyInterface.setObjectName("shortcutKeyInterface")
         self.setInterface = QWidget()
         self.setInterface.setObjectName('setInterface')
 
@@ -132,6 +298,11 @@ class MainWindow(FluentWindow):
             interface=self.otherTaskInterface,
             icon=FluentIcon.LINK,
             text="其他任务",
+        )
+        self.addSubInterface(
+            interface=self.shortcutKeyInterface,
+            icon=FluentIcon.CUT,
+            text="快捷键",
         )
         self.addSubInterface(
             interface=self.setInterface,
@@ -222,6 +393,10 @@ class MainWindow(FluentWindow):
             target_com_val = self.target_com_input.text().strip()
         self.target_com = target_com_val  # 同步到类变量
 
+        # 快捷键
+        self.pause_shortcut = self.pause_shortcut_edit.get_shortcut() if hasattr(self, 'pause_shortcut_edit') else self.pause_shortcut
+        self.stop_shortcut = self.stop_shortcut_edit.get_shortcut() if hasattr(self, 'stop_shortcut_edit') else self.stop_shortcut
+
         # 任务参数设置
         self.task_interval_time = getattr(self, 'task_interval_time_layout_QSpinBox', None).value() if hasattr(self, 'task_interval_time_layout_QSpinBox') else self.task_interval_time
         self.ocr_use_gpu = getattr(self, 'ocr_use_gpu_switch', None).isChecked() if hasattr(self, 'ocr_use_gpu_switch') else self.ocr_use_gpu
@@ -270,6 +445,10 @@ class MainWindow(FluentWindow):
         # 其他任务
         self.config.set("OtherTask", "is_exhausted_com", str(self.is_exhausted_com))
         self.config.set("OtherTask", "target_com", self.target_com)
+
+        # 快捷键
+        self.config.set("SETTINGS", "pause_shortcut", self.pause_shortcut)
+        self.config.set("SETTINGS", "stop_shortcut", self.stop_shortcut)
 
         # 任务参数设置
         self.config.set("SETTINGS", "task_interval_time", str(self.task_interval_time))
@@ -321,6 +500,9 @@ class MainWindow(FluentWindow):
             # 其他任务
             self.is_exhausted_com = self.config.getboolean("OtherTask", "is_exhausted_com", fallback=True)
             self.target_com = self.config.get("OtherTask", "target_com", fallback="0")
+            # 快捷键
+            self.pause_shortcut = self.config.get("SETTINGS", "pause_shortcut", fallback="F9")
+            self.stop_shortcut = self.config.get("SETTINGS", "stop_shortcut", fallback="F10")
             # 任务参数设置
             self.task_interval_time = self.config.getint("SETTINGS", "task_interval_time", fallback=2)
             self.ocr_use_gpu = self.config.getboolean("SETTINGS", "ocr_use_gpu", fallback=False)
@@ -360,6 +542,9 @@ class MainWindow(FluentWindow):
             self.mimier_get_stack_time = "周日"
             # 日志设置
             self.debug_log = False
+            # 快捷键
+            self.pause_shortcut = "F9"
+            self.stop_shortcut = "F10"
             # 任务参数设置
             self.task_interval_time = 2
             self.ocr_use_gpu = False
@@ -741,6 +926,52 @@ class MainWindow(FluentWindow):
         
         main_layout.addLayout(communication_layout)
 
+    def _init_shortcut_key_ui(self):
+        main_layout = QVBoxLayout(self.shortcutKeyInterface)
+        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setSpacing(20)
+        main_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        
+        shortcut_layout = QVBoxLayout()
+        shortcut_layout.setSpacing(30)
+        
+        shortcut_title_layout = QHBoxLayout()
+        shortcut_icon = IconWidget(FluentIcon.TAG, self.shortcutKeyInterface)
+        shortcut_icon.setFixedSize(24, 24)
+        shortcut_title_layout.addWidget(shortcut_icon)
+        shortcut_title_layout.addWidget(QLabel("快捷键设置", self.shortcutKeyInterface))
+        shortcut_layout.addLayout(shortcut_title_layout)
+        
+        # 暂停快捷键
+        pause_shortcut_layout = QHBoxLayout()
+        pause_shortcut_layout.addWidget(QLabel("暂停/继续任务", self.shortcutKeyInterface))
+        pause_shortcut_layout.addStretch(1)
+        self.pause_shortcut_edit = ShortcutEdit(self.pause_shortcut, self.shortcutKeyInterface)
+        pause_shortcut_layout.addWidget(self.pause_shortcut_edit)
+        
+        # 重置按钮
+        self.pause_reset_btn = PushButton("重置", self.shortcutKeyInterface)
+        self.pause_reset_btn.setFixedWidth(60)
+        pause_shortcut_layout.addWidget(self.pause_reset_btn)
+        shortcut_layout.addLayout(pause_shortcut_layout)
+        
+        # 停止快捷键
+        stop_shortcut_layout = QHBoxLayout()
+        stop_shortcut_layout.addWidget(QLabel("停止任务", self.shortcutKeyInterface))
+        stop_shortcut_layout.addStretch(1)
+        self.stop_shortcut_edit = ShortcutEdit(self.stop_shortcut, self.shortcutKeyInterface)
+        stop_shortcut_layout.addWidget(self.stop_shortcut_edit)
+        
+        # 重置按钮
+        self.stop_reset_btn = PushButton("重置", self.shortcutKeyInterface)
+        self.stop_reset_btn.setFixedWidth(60)
+        stop_shortcut_layout.addWidget(self.stop_reset_btn)
+        shortcut_layout.addLayout(stop_shortcut_layout)
+        main_layout.addLayout(shortcut_layout)
+        
+
+
+
     def _init_settings_ui(self):
         """初始化设置页UI（创建所有界面元素）"""
         main_layout = QVBoxLayout(self.setInterface)
@@ -904,6 +1135,11 @@ class MainWindow(FluentWindow):
         self.is_exhausted_com_switch.checkedChanged.connect(self.save_config)
         self.is_exhausted_com_switch.checkedChanged.connect(self.toggle_com_input)
         self.target_com_input.textChanged.connect(self.save_config)
+        # 快捷键
+        self.pause_shortcut_edit.shortcut_changed.connect(self._on_shortcut_changed)
+        self.pause_reset_btn.clicked.connect(lambda: self.pause_shortcut_edit.reset_to_default("F9"))
+        self.stop_shortcut_edit.shortcut_changed.connect(self._on_shortcut_changed)
+        self.stop_reset_btn.clicked.connect(lambda: self.stop_shortcut_edit.reset_to_default("F10"))
         # 任务参数设置
         self.task_interval_time_layout_QSpinBox.valueChanged.connect(self.save_config)
         self.ocr_use_gpu_switch.checkedChanged.connect(self.save_config)
@@ -969,6 +1205,37 @@ class MainWindow(FluentWindow):
         if self.sub_dengeon_level_spin.value() > max_level:
             self.sub_dengeon_level_spin.setValue(max_level)
         self.sub_dungeon_level = self.sub_dengeon_level_spin.value()
+        
+    def _on_shortcut_changed(self, new_shortcut: str, old_shortcut: str):
+        """快捷键改变时的处理"""
+        # 冲突检测
+        # sender() 返回connect的那个控件
+        shortcut_edit_dict = {self.stop_shortcut_edit: "停止任务", 
+                              self.pause_shortcut_edit: "暂停/继续任务"}
+        
+        for k, v in shortcut_edit_dict.items():
+            if self.sender() != k: # 自身冲突不检测
+                if new_shortcut == k.get_shortcut():
+                    self.sender().set_shortcut(old_shortcut)
+                    QMessageBox.warning(self, "快捷键冲突", f"快捷键「{new_shortcut}」已被「{v}」使用，请选择其他快捷键")
+                    return
+        
+        if self.sender() == self.pause_shortcut_edit:
+            if new_shortcut == self.stop_shortcut_edit.get_shortcut():
+                # 冲突了，恢复旧值
+                self.pause_shortcut_edit.set_shortcut(old_shortcut)
+                QMessageBox.warning(self, "快捷键冲突", f"快捷键「{new_shortcut}」已被「停止任务」使用，请选择其他快捷键")
+                return
+        elif self.sender() == self.stop_shortcut_edit:
+            if new_shortcut == self.pause_shortcut_edit.get_shortcut():
+                self.stop_shortcut_edit.set_shortcut(old_shortcut)
+                QMessageBox.warning(self, "快捷键冲突", f"快捷键「{new_shortcut}」已被「暂停/继续任务」使用，请选择其他快捷键")
+                return
+        
+        
+        # 保存配置
+        self.save_config()
+        Log(f"快捷键已更新：暂停={self.pause_shortcut}，停止={self.stop_shortcut}")
 
     def append_log(self, content, level="INFO"):
         """添加日志到日志框（容错：日志框未创建时不报错）"""
@@ -1045,7 +1312,6 @@ class TaskThread(QThread):
         self.pause_event.set()
         
         
-        
         self.keyboard_listener = None
         
         from task import Task
@@ -1098,26 +1364,88 @@ class TaskThread(QThread):
             "邮件": self.main_window.is_mail
         }
 
-    def on_key_press(self, key):
-        '''全局监听'''
-        try:
-            if key == keyboard.Key.f9:
-                self.toggle_pause()
-            elif key == keyboard.Key.f10:
-                self.stop_task()
-        except Exception as e:
-            Log(f"键盘监听失败\n {e}")
+    def _convert_to_pynput_format(self, shortcut_str: str) -> str:
+        """
+        把UI显示格式的快捷键，转换成pynput.GlobalHotKeys能识别的格式
+        支持：修饰键(Ctrl/Shift/Alt/Win)、F键(F1-F12)、特殊键(ESC/Enter等)、普通字母/数字
+        """
+        if not shortcut_str:
+            return ""
 
-    def start_key_listener(self):
-        '''启动键盘监听'''
-        self.keyboard_listener = keyboard.Listener(on_press=self.on_key_press)
-        self.keyboard_listener.daemon = True # 自动销毁
-        self.keyboard_listener.start()
+        # 1. 修饰键映射（UI显示名 → pynput解析名）
+        modifier_map = {
+            "Ctrl": "<ctrl>",
+            "Shift": "<shift>",
+            "Alt": "<alt>",
+            "Win": "<cmd>"
+        }
+
+        # 2. 特殊键映射（UI显示名 → pynput解析名）
+        special_key_map = {
+            "ESC": "<esc>",
+            "Enter": "<enter>",
+            "Backspace": "<backspace>",
+            "Tab": "<tab>",
+            "Space": "<space>",
+            "↑": "<up>",
+            "↓": "<down>",
+            "←": "<left>",
+            "→": "<right>",
+            "Delete": "<delete>",
+            "Insert": "<insert>",
+            "Home": "<home>",
+            "End": "<end>",
+            "PageUp": "<page_up>",
+            "PageDown": "<page_down>"
+        }
+
+        parts = shortcut_str.split("+")
+        converted_parts = []
+
+        for part in parts:
+            part = part.strip()
+
+            # 情况1：修饰键（Ctrl/Shift/Alt/Win）
+            if part in modifier_map:
+                converted_parts.append(modifier_map[part])
+            
+            # 情况2：F键（F1-F12）
+            elif part.startswith("F") and part[1:].isdigit():
+                # 转成 <f9> 格式
+                converted_parts.append(f"<{part.lower()}>")
+            
+            # 情况3：特殊键（ESC/Enter/方向键等）
+            elif part in special_key_map:
+                converted_parts.append(special_key_map[part])
+            
+            # 情况4：普通字母/数字（转小写即可）
+            else:
+                converted_parts.append(part.lower())
+
+        return "+".join(converted_parts)
     
+    def start_key_listener(self):
+        '''启动快捷键监听'''
+        # 转换快捷键格式
+        pause_hotkey = self._convert_to_pynput_format(self.main_window.pause_shortcut)
+        stop_hotkey = self._convert_to_pynput_format(self.main_window.stop_shortcut)
+
+        # 定义快捷键映射：转换后的格式 → 对应函数
+        hotkey_map = {}
+        if pause_hotkey:
+            hotkey_map[pause_hotkey] = self.toggle_pause
+        if stop_hotkey:
+            hotkey_map[stop_hotkey] = self.stop_task
+
+        self.keyboard_listener = keyboard.GlobalHotKeys(hotkey_map)
+        self.keyboard_listener.daemon = True
+        self.keyboard_listener.start()
+
     def stop_key_listener(self):
-        '''停止键盘监听'''
+        '''停止监听'''
         if self.keyboard_listener:
             self.keyboard_listener.stop()
+            self.keyboard_listener = None
             
     def toggle_pause(self):
         '''切换暂停/继续'''
@@ -1146,7 +1474,7 @@ class TaskThread(QThread):
     def run(self):
         """线程执行的入口"""
         self.start_key_listener()
-        self.main_window.append_log("==============任务启动 | F9=暂停/继续 | F10=停止==============")
+        self.main_window.append_log(f"==============任务启动 | {self.main_window.pause_shortcut}=暂停/继续 | {self.main_window.stop_shortcut}=停止==============")
         
         try:
             if self.select_task == "oneDragon":
@@ -1161,7 +1489,7 @@ class TaskThread(QThread):
                 self.t.re_main_ui()
                 self.communication()                  
         except SystemExit:
-            Log("线程已停止")
+            Log("线程已停止", level="WARNING")
         except Exception as e:
             error_msg = f"【子线程异常】{self.select_task} 任务失败：\n{traceback.format_exc()}"
             self.error_singal.emit(error_msg, 'CRITICAL')
