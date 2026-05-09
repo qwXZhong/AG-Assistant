@@ -13,7 +13,7 @@ def global_exception_hook(exc_type, exc_value, exc_traceback):
     # 调用GUI弹窗
     MainWindow().show_error_dialog(error_msg)
 
- 
+
 
     
 if __name__ == '__main__':

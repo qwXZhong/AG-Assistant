@@ -11,7 +11,7 @@ class Task(Automatic, GameOCR):
     def __init__(self, title, game_path, process_name, target, number, find_time=10, mode='mopup', \
                     consume_power=-1, is_exhausted=False, is_standby=True, \
                     standby_target='酬金委托', standby_target_number=5, joint_is_refresh=True,\
-                          joint_must_s=True, interval_time=0.02, time_out=10, task_interval_time=2, \
+                          joint_must_s=True, get_stack_time=6, interval_time=0.02, time_out=10, task_interval_time=2, \
                  ocr_use_gpu=False, ocr_collect_time=20, template_resolution='1920*1200', pause_stop_check=None):
         
         Automatic.__init__(self, title, game_path, process_name, time_out, interval_time, pause_stop_check)
@@ -79,7 +79,7 @@ class Task(Automatic, GameOCR):
         self.standby_target_number = standby_target_number
         self.joint_is_refresh = joint_is_refresh              
         self.joint_must_s = joint_must_s
-        
+        self.get_stack_time = get_stack_time
 
         # 常用区域
         # 主界面下操作栏（修正者，探测...)
@@ -1315,12 +1315,13 @@ class Task(Automatic, GameOCR):
         
     # 弥弥观测站
     def mimier(self, get_stack_time=6):
-        log.Log(f"==============正在执行：弥弥观测站==============")
-        time.sleep(self.task_interval_time)
-
         '''
         get_stack_time 获取堆栈递归的时间Monday == 0 ... Sunday == 6
         '''
+        log.Log(f"==============正在执行：弥弥观测站==============")
+        time.sleep(self.task_interval_time)
+        get_stack_time = self.get_stack_time
+        
         
         # 做主界面判断
         
@@ -1374,12 +1375,23 @@ class Task(Automatic, GameOCR):
         now = datetime.datetime.now()
         if now.weekday() == get_stack_time:
             
-            if not self.wait_and_click(f'{self.rootpic}\\dailytask\\mimier\\mimier_station.png', \
-                0, 0, True, time_out=self.task_interval_time, is_Log=False):
+            if not self.wait_and_click(f'{self.rootpic}\\dailytask\\mimier\\stack.png', \
+                0, 0, True):
                 log.Log('点击 堆栈递归 失败', level='ERROR')
                 return False
         
             # 然后相关操作
+            # 点击 开启演算
+            if not self.wait_and_click(f'{self.rootpic}\\dailytask\\mimier\\enable_computation.png', \
+                0, 0, True, time_out= self.task_interval_time, is_Log=False):
+                log.Log('点击 开启演算 失败', level='ERROR')
+                return True
+            
+            # 点击 递归演算中
+            if not self.wait_and_click(f'{self.rootpic}\\dailytask\\mimier\\stacking.png', \
+                0, 0, True):
+                log.Log('点击 递归演算中 失败', level='ERROR')
+                return False
             
         else:
             log.Log(f"未到堆栈递归的设定领取时间")

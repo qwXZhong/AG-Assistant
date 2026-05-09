@@ -59,6 +59,7 @@ class MainWindow(FluentWindow):
         self.joint_must_s = True
         self.mode = "扫荡"
         self.find_second_dengeon_panel_time = 10
+        self.mimier_get_stack_time = "周日"
         
         # 日志设置
         self.debug_log = False
@@ -208,6 +209,7 @@ class MainWindow(FluentWindow):
         self.joint_must_s = getattr(self, 'joint_must_s_switch', None).isChecked() if hasattr(self, 'joint_must_s_switch') else self.joint_must_s
         self.mode = getattr(self, 'mode_ComboBox', None).currentText() if hasattr(self, 'mode_ComboBox') else self.mode
         self.find_second_dengeon_panel_time = getattr(self, 'find_second_dengeon_panel_time_QSpinBox', None).value() if hasattr(self, 'find_second_dengeon_panel_time_QSpinBox') else self.find_second_dengeon_panel_time
+        self.mimier_get_stack_time = getattr(self, 'mimier_get_stack_time_ComboBox', None).currentText() if hasattr(self, 'mimier_get_stack_time_ComboBox') else self.mimier_get_stack_time
         
         # 日志设置
         self.debug_log = getattr(self, 'debug_check', None).isChecked() if hasattr(self, 'debug_check') else self.debug_log
@@ -259,6 +261,8 @@ class MainWindow(FluentWindow):
         self.config.set("onedragonSpcial", "find_second_dengeon_panel_time", str(self.find_second_dengeon_panel_time))
         self.config.set("onedragonSpcial", "joint_is_refresh", str(self.joint_is_refresh))
         self.config.set("onedragonSpcial", "joint_must_s", str(self.joint_must_s))
+        self.config.set("onedragonSpcial", "mimier_get_stack_time", self.mimier_get_stack_time)
+
 
         # 日志设置
         self.config.set("SETTINGS", "debug_log", str(self.debug_log))
@@ -311,6 +315,7 @@ class MainWindow(FluentWindow):
             self.joint_must_s = self.config.getboolean("onedragonSpcial", "joint_must_s", fallback=True)
             self.mode = self.config.get("onedragonSpcial", "mode", fallback="扫荡")
             self.find_second_dengeon_panel_time = self.config.getint("onedragonSpcial", "find_second_dengeon_panel_time", fallback=10)
+            self.mimier_get_stack_time = self.config.get("onedragonSpcial", "mimier_get_stack_time", fallback="周日")
             # 日志设置
             self.debug_log = self.config.getboolean("SETTINGS", "debug_log", fallback=False)
             # 其他任务
@@ -352,6 +357,7 @@ class MainWindow(FluentWindow):
             self.joint_must_s = True
             self.mode = "扫荡"
             self.find_second_dengeon_panel_time = 10
+            self.mimier_get_stack_time = "周日"
             # 日志设置
             self.debug_log = False
             # 任务参数设置
@@ -663,6 +669,16 @@ class MainWindow(FluentWindow):
         find_second_dengeon_panel_time_layout.addWidget(self.find_second_dengeon_panel_time_QSpinBox)
         special_setting_layout.addLayout(find_second_dengeon_panel_time_layout)
         
+        # 弥弥尔观测站堆栈递归领取时间
+        mimier_get_stack_time_layout = QHBoxLayout()
+        self.mimier_get_stack_time_ComboBox = ComboBox(self.oneDragonInterface)
+        self.mimier_get_stack_time_ComboBox.addItems(["周六", "周日"])
+        self.mimier_get_stack_time_ComboBox.setCurrentText(self.mimier_get_stack_time)
+        self.mimier_get_stack_time_ComboBox.setFixedWidth(100)
+        mimier_get_stack_time_layout.addWidget(QLabel("弥弥尔观测站堆栈递归领取时间", self.oneDragonInterface))
+        mimier_get_stack_time_layout.addStretch(1)
+        mimier_get_stack_time_layout.addWidget(self.mimier_get_stack_time_ComboBox)
+        special_setting_layout.addLayout(mimier_get_stack_time_layout)
         
         
         
@@ -882,6 +898,8 @@ class MainWindow(FluentWindow):
         self.joint_must_s_switch.checkedChanged.connect(self.save_config)
         self.mode_ComboBox.currentTextChanged.connect(self.save_config)
         self.find_second_dengeon_panel_time_QSpinBox.valueChanged.connect(self.save_config)
+        self.mimier_get_stack_time_ComboBox.currentTextChanged.connect(self.save_config)
+        
         # 其他任务
         self.is_exhausted_com_switch.checkedChanged.connect(self.save_config)
         self.is_exhausted_com_switch.checkedChanged.connect(self.toggle_com_input)
@@ -1034,6 +1052,11 @@ class TaskThread(QThread):
         mode_translate = {
             "扫荡": "mopup"
         }
+        get_stack_time_translate = {
+            "周六": 5,
+            "周日": 6
+        }
+        
         self.t = Task(
             title="AetherGazer",
             game_path=self.main_window.game_path,
@@ -1055,7 +1078,8 @@ class TaskThread(QThread):
             template_resolution=self.main_window.template_resolution,
             time_out=self.main_window.time_out,
             task_interval_time=self.main_window.task_interval_time,
-            pause_stop_check=self.check_state
+            pause_stop_check=self.check_state,
+            get_stack_time = get_stack_time_translate.get(self.main_window.mimier_get_stack_time, 6)
         )
         
         self.t.taskdic = {
@@ -1122,7 +1146,7 @@ class TaskThread(QThread):
     def run(self):
         """线程执行的入口"""
         self.start_key_listener()
-        self.main_window.append_log("任务启动 | F9=暂停/继续 | F10=停止")
+        self.main_window.append_log("==============任务启动 | F9=暂停/继续 | F10=停止==============")
         
         try:
             if self.select_task == "oneDragon":

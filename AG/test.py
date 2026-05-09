@@ -80,7 +80,7 @@ if __name__ == "__main__":
         }
 
     # t.clear_power('酬金委托', 1, use_class_parameter=False,is_exhausted=True)
-    t.all_task()
+    # t.all_task()
     # t.clear_power("联防协议", 3 , is_exhausted=True, use_class_parameter=False)
     # t.garden()
     
@@ -89,6 +89,7 @@ if __name__ == "__main__":
     # t.mail()
     # t.re_main_ui()
     # t.joint_defense_disorder(consume_communication=-1)
+    t.mimier(5)
     
 
     name_dic = {
