@@ -10,12 +10,23 @@ import time
 from window import WindowRect
 
 class Automatic(WindowRect):
-    def __init__(self, title, game_path, process_name,  time_out=10, interval_time=0.02, pause_stop_check=None):
+    def __init__(self, title, game_path, process_name,  time_out=10, interval_time=0.02, delay=0, pause_stop_check=None):
+        '''
+        title, game_path, process_name,  
+        time_out 页面等待超时时间 
+        interval_time 循环检测页面的间隔
+        delay 目标页面出现，延迟delay执行
+        pause_stop_check 线程暂停，停止检测函数（仅对wait相关操作生效）
+        
+        '''
+        
+        
         WindowRect.__init__(self, title, game_path, process_name)
         self.myMss = None
         self.time_out = time_out
         self.interval_time = interval_time
         self.pause_stop_check = pause_stop_check
+        self.delay = delay
         
     def check_pause_stop(self):
         """安全调用检查函数，实时响应暂停/停止"""
@@ -140,11 +151,13 @@ class Automatic(WindowRect):
         '''
         if self.wait(template_path, isCut, pos, threshold, time_out, is_Log):
             time.sleep(delay_click)
+            time.sleep(self.delay) # 全局延迟
             return self.auto_click(template_path, px, py, flag, isCut, pos, threshold)
         return False
     
     def wait_and_keyboard(self, key, template_path, isCut=False, pos=None, threshold=0.8, time_out=None, is_Log=True):
         if self.wait(template_path, isCut, pos, threshold, time_out, is_Log):
+            time.sleep(self.delay) # 全局延迟
             self.auto_keyboard(key)
             
     

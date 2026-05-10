@@ -190,6 +190,7 @@ class MainWindow(FluentWindow):
         self.is_role_interaction = False
         self.is_get_power = False
         self.is_clear_power = False
+        self.is_joint_defense_reward = False
         self.is_garden = False
         self.is_shop_get_free_power = False
         self.is_mimier = False
@@ -235,6 +236,7 @@ class MainWindow(FluentWindow):
         
         # 任务参数设置
         self.task_interval_time = 2
+        self.global_interval_time = 500
         self.ocr_use_gpu = False
         self.ocr_collect_time = 20
         self.screenshot_cnt = 50
@@ -347,6 +349,7 @@ class MainWindow(FluentWindow):
         self.is_role_interaction = getattr(self, 'check_role_interaction', None).isChecked() if hasattr(self, 'check_role_interaction') else self.is_role_interaction
         self.is_get_power = getattr(self, 'check_get_power', None).isChecked() if hasattr(self, 'check_get_power') else self.is_get_power
         self.is_clear_power = getattr(self, 'check_clear_power', None).isChecked() if hasattr(self, 'check_clear_power') else self.is_clear_power
+        self.is_joint_defense_reward = getattr(self, 'check_joint_defense_reward', None).isChecked() if hasattr(self, 'check_joint_defense_reward') else self.is_joint_defense_reward
         self.is_garden = getattr(self, 'check_garden', None).isChecked() if hasattr(self, 'check_garden') else self.is_garden
         self.is_shop_get_free_power = getattr(self, 'check_shop_get_free_power', None).isChecked() if hasattr(self, 'check_shop_get_free_power') else self.is_shop_get_free_power
         self.is_mimier = getattr(self, 'check_mimier', None).isChecked() if hasattr(self, 'check_mimier') else self.is_mimier
@@ -400,6 +403,7 @@ class MainWindow(FluentWindow):
 
         # 任务参数设置
         self.task_interval_time = getattr(self, 'task_interval_time_layout_QSpinBox', None).value() if hasattr(self, 'task_interval_time_layout_QSpinBox') else self.task_interval_time
+        self.global_interval_time = getattr(self, 'global_interval_time_layout_QSpinBox', None).value() if hasattr(self, 'global_interval_time_layout_QSpinBox') else self.global_interval_time
         self.ocr_use_gpu = getattr(self, 'ocr_use_gpu_switch', None).isChecked() if hasattr(self, 'ocr_use_gpu_switch') else self.ocr_use_gpu
         self.ocr_collect_time = getattr(self, 'ocr_collect_time_QSpinBox', None).value() if hasattr(self, 'ocr_collect_time_QSpinBox') else self.ocr_collect_time
         self.screenshot_cnt = getattr(self, 'screenshot_cnt_QSpinBox', None).value() if hasattr(self, 'screenshot_cnt_QSpinBox') else self.screenshot_cnt
@@ -416,6 +420,7 @@ class MainWindow(FluentWindow):
         self.config.set("onedragon", "role_interaction", str(self.is_role_interaction))
         self.config.set("onedragon", "get_power", str(self.is_get_power))
         self.config.set("onedragon", "clear_power", str(self.is_clear_power))
+        self.config.set("onedragon", "is_joint_defense_reward", str(self.is_joint_defense_reward))
         self.config.set("onedragon", "garden", str(self.is_garden))
         self.config.set("onedragon", "shop_get_free_power", str(self.is_shop_get_free_power))
         self.config.set("onedragon", "mimier", str(self.is_mimier))
@@ -453,6 +458,7 @@ class MainWindow(FluentWindow):
 
         # 任务参数设置
         self.config.set("SETTINGS", "task_interval_time", str(self.task_interval_time))
+        self.config.set("SETTINGS", "global_interval_time", str(self.global_interval_time))
         self.config.set("SETTINGS", "ocr_use_gpu", str(self.ocr_use_gpu))
         self.config.set("SETTINGS", "ocr_collect_time", str(self.ocr_collect_time))
         self.config.set("SETTINGS", "screenshot_cnt", str(self.screenshot_cnt))
@@ -476,6 +482,7 @@ class MainWindow(FluentWindow):
             self.is_role_interaction = self.config.getboolean("onedragon", "role_interaction", fallback=False)
             self.is_get_power = self.config.getboolean("onedragon", "get_power", fallback=False)
             self.is_clear_power = self.config.getboolean("onedragon", "clear_power", fallback=False)
+            self.is_joint_defense_reward = self.config.getboolean("onedragon", "is_joint_defense_reward", fallback=False)
             self.is_garden = self.config.getboolean("onedragon", "garden", fallback=False)
             self.is_shop_get_free_power = self.config.getboolean("onedragon", "shop_get_free_power", fallback=False)
             self.is_mimier = self.config.getboolean("onedragon", "mimier", fallback=False)
@@ -506,6 +513,7 @@ class MainWindow(FluentWindow):
             self.stop_shortcut = self.config.get("SETTINGS", "stop_shortcut", fallback="F10")
             # 任务参数设置
             self.task_interval_time = self.config.getint("SETTINGS", "task_interval_time", fallback=2)
+            self.global_interval_time = self.config.getint("SETTINGS", "global_interval_time", fallback=500)
             self.ocr_use_gpu = self.config.getboolean("SETTINGS", "ocr_use_gpu", fallback=False)
             self.ocr_collect_time = self.config.getint("SETTINGS", "ocr_collect_time", fallback=20)
             self.screenshot_cnt = self.config.getint("SETTINGS", "screenshot_cnt", fallback=50)
@@ -521,6 +529,7 @@ class MainWindow(FluentWindow):
             self.is_role_interaction = False
             self.is_get_power = False
             self.is_clear_power = False
+            self.is_joint_defense_reward = False
             self.is_garden = False
             self.is_shop_get_free_power = False
             self.is_mimier = False
@@ -548,6 +557,7 @@ class MainWindow(FluentWindow):
             self.stop_shortcut = "F10"
             # 任务参数设置
             self.task_interval_time = 2
+            self.global_interval_time = 500
             self.ocr_use_gpu = False
             self.ocr_collect_time = 20
             self.screenshot_cnt = 50
@@ -641,6 +651,9 @@ class MainWindow(FluentWindow):
 
         self.check_clear_power = QCheckBox("清体力", self.oneDragonInterface)
         self.check_clear_power.setChecked(self.is_clear_power)
+        
+        self.check_joint_defense_reward = QCheckBox("联防协议 奖励领取", self.oneDragonInterface)
+        self.check_joint_defense_reward.setChecked(self.is_joint_defense_reward)
 
         self.check_garden = QCheckBox("游园街", self.oneDragonInterface)
         self.check_garden.setChecked(self.is_garden)
@@ -662,14 +675,20 @@ class MainWindow(FluentWindow):
 
         # 添加复选框到布局
         for check_box in [
-            self.check_role_interaction, self.check_get_power,
-            self.check_clear_power, self.check_garden,
-            self.check_shop_get_free_power
+            self.check_role_interaction, 
+            self.check_get_power,
+            self.check_clear_power, 
+            self.check_joint_defense_reward, 
+            self.check_garden,
+            
         ]:
             oneDragon_left_list.addWidget(check_box)
+            
         for check_box in [
+            self.check_shop_get_free_power,
             self.check_mimier,
-            self.check_get_daily_weekly_reward, self.check_monthly_pass,
+            self.check_get_daily_weekly_reward, 
+            self.check_monthly_pass,
             self.check_mail
         ]:
             oneDragon_right_list.addWidget(check_box)
@@ -1027,6 +1046,20 @@ class MainWindow(FluentWindow):
         
         task_parameter_layout.addLayout(task_interval_time_layout)
         
+        # 全局延迟
+        global_interval_time_layout = QHBoxLayout()
+        global_interval_time_label = QLabel("这是全局操作延迟，因为该游戏有时会出现界面已经加载，但是无法操作的情况", self.setInterface)
+        global_interval_time_layout.addWidget(global_interval_time_label)
+        global_interval_time_layout.addStretch(1)
+        
+        self.global_interval_time_layout_QSpinBox = QSpinBox(self.setInterface)
+        self.global_interval_time_layout_QSpinBox.setRange(0, 2000)
+        self.global_interval_time_layout_QSpinBox.setValue(self.global_interval_time)
+        self.global_interval_time_layout_QSpinBox.setSuffix(" ms")
+        global_interval_time_layout.addWidget(self.global_interval_time_layout_QSpinBox)
+        
+        task_parameter_layout.addLayout(global_interval_time_layout)
+        
         # ocr模型是否启用GPU加速
         ocr_use_gpu_layout = QHBoxLayout()
         
@@ -1105,6 +1138,7 @@ class MainWindow(FluentWindow):
         self.check_role_interaction.stateChanged.connect(self.save_config)
         self.check_get_power.stateChanged.connect(self.save_config)
         self.check_clear_power.stateChanged.connect(self.save_config)
+        self.check_joint_defense_reward.stateChanged.connect(self.save_config)
         self.check_garden.stateChanged.connect(self.save_config)
         self.check_shop_get_free_power.stateChanged.connect(self.save_config)
         self.check_mimier.stateChanged.connect(self.save_config)
@@ -1143,6 +1177,7 @@ class MainWindow(FluentWindow):
         self.stop_reset_btn.clicked.connect(lambda: self.stop_shortcut_edit.reset_to_default("F10"))
         # 任务参数设置
         self.task_interval_time_layout_QSpinBox.valueChanged.connect(self.save_config)
+        self.global_interval_time_layout_QSpinBox.valueChanged.connect(self.save_config)
         self.ocr_use_gpu_switch.checkedChanged.connect(self.save_config)
         self.ocr_collect_time_QSpinBox.valueChanged.connect(self.save_config)
         self.screenshot_cnt_QSpinBox.valueChanged.connect(self.save_config)
@@ -1346,7 +1381,8 @@ class TaskThread(QThread):
             time_out=self.main_window.time_out,
             task_interval_time=self.main_window.task_interval_time,
             pause_stop_check=self.check_state,
-            get_stack_time = get_stack_time_translate.get(self.main_window.mimier_get_stack_time, 6)
+            get_stack_time = get_stack_time_translate.get(self.main_window.mimier_get_stack_time, 6),
+            delay=self.main_window.global_interval_time / 1000
         )
         
         self.t.taskdic = {
@@ -1357,6 +1393,7 @@ class TaskThread(QThread):
             "角色互动": self.main_window.is_role_interaction,
             "尝试领取额外体力": self.main_window.is_get_power,
             "进入指定副本并消耗体力": self.main_window.is_clear_power,
+            "联防协议 奖励领取": self.main_window.is_joint_defense_reward,
             "游园街": self.main_window.is_garden,
             "商店免费体力": self.main_window.is_shop_get_free_power,
             "弥弥尔": self.main_window.is_mimier,

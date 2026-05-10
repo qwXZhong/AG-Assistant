@@ -11,10 +11,34 @@ class Task(Automatic, GameOCR):
     def __init__(self, title, game_path, process_name, target, number, find_time=10, mode='mopup', \
                     consume_power=-1, is_exhausted=False, is_standby=True, \
                     standby_target='酬金委托', standby_target_number=5, joint_is_refresh=True,\
-                          joint_must_s=True, get_stack_time=6, interval_time=0.02, time_out=10, task_interval_time=2, \
+                          joint_must_s=True, get_stack_time=6, interval_time=0.02, time_out=10, task_interval_time=2, delay=0.5,\
                  ocr_use_gpu=False, ocr_collect_time=20, template_resolution='1920*1200', pause_stop_check=None):
+        '''
+        target 目标副本
+        number 目标副本等级
+        find_time 二级页面寻找最大次数
+        mode  副本执行模式
+        consume_power 消耗的目标体力
+        is_exhausted 是否耗尽全部体力
+        is_standby 是否启用备用副本，仅联合特勤生效
+        standby_target 备用副本
+        standby_target_number 备用副本等级
+        joint_is_refresh 联合特勤是否允许刷新
+        joint_must_s 联合特勤是否必须s
+        get_stack_time 堆栈递归领取时间
+        task_interval_time 任务间的间隔
         
-        Automatic.__init__(self, title, game_path, process_name, time_out, interval_time, pause_stop_check)
+        template_resolution 匹配的模板分辨率
+        
+        Automatic::interval_time, time_out, delay, pause_stop_check
+        GameOCR::ocr_use_gpu, ocr_collect_time
+        '''
+        
+        
+        
+        
+        
+        Automatic.__init__(self, title, game_path, process_name, time_out, interval_time, delay ,pause_stop_check)
         GameOCR.__init__(self, ocr_use_gpu, ocr_collect_time)
         
         # 模板匹配的分辨率
@@ -42,6 +66,7 @@ class Task(Automatic, GameOCR):
             "角色互动": True,
             "尝试领取额外体力": True,
             "进入指定副本并消耗体力": True,
+            "联防协议 奖励领取": True,
             "游园街": True,
             "商店免费体力": True,
             "弥弥尔": True,
@@ -221,6 +246,8 @@ class Task(Automatic, GameOCR):
             return self.get_power()
         elif key == "进入指定副本并消耗体力":
             return self.clear_power('酬金委托', number=5)
+        elif key == "联防协议 奖励领取":
+            return self.joint_defense_reward()
         elif key == "游园街":
             return self.garden()
         elif key == "商店免费体力":
@@ -336,8 +363,8 @@ class Task(Automatic, GameOCR):
         }
         for name, pxy in adict.items():
             if not self.wait_and_click(self.template_button_path[name], pxy[0], pxy[1], True, time_out=self.task_interval_time, is_Log=False):
-                log.Log(f"未找到{name}", level='WARNING')
-                return False
+                log.Log(f"未找到{name}, 可能体力已经领取", level='WARNING')
+                break
             
 
         return True
@@ -362,7 +389,6 @@ class Task(Automatic, GameOCR):
             joint_must_s = self.joint_must_s
 
         
-        log.Log(f"目标副本 {target}, 备用副本 {standby_target}, 是否启用备用方案: {is_standby}")
         '''
         target 目标副本名
         number 第几个难度的副本
@@ -377,6 +403,7 @@ class Task(Automatic, GameOCR):
         '''
         
         log.Log(f"==============正在执行：清体力==============")
+        log.Log(f"目标副本 {target}, 备用副本 {standby_target}, 是否启用备用方案: {is_standby}")
         time.sleep(self.task_interval_time)
         
         # 做主界面判断
@@ -597,7 +624,7 @@ class Task(Automatic, GameOCR):
                         
                             
                         
-                        self.clear_power(standby_target, standby_target_number, \
+                        return self.clear_power(standby_target, standby_target_number, \
                                             find_time, mode, consume_power, is_exhausted, \
                                                 is_standby, standby_target, standby_target_number,\
                                                     joint_is_refresh, joint_must_s, use_class_parameter=False)
@@ -606,6 +633,7 @@ class Task(Automatic, GameOCR):
                         return False
                 else:
                     # 重置，将体力消耗调整为最低
+                    is_clear_flag = False # 用来存储是否执行过清体力
                     
                     log.Log(f"重置体力")
                     if not self.wait_and_click(f'{self.rootpic}\\dailytask\\power_panel\\to_min.png', 0, 0, True, True, self.get_curpower_minpower_panel_region, 0.7):
@@ -631,6 +659,8 @@ class Task(Automatic, GameOCR):
                     # 清体力
                     if not self.common_power_panel(mode, consume_power, is_exhausted, is_pd=False):
                         return False
+                    else:
+                        is_clear_flag = True
                     
                     
                     # 清除指定体力
@@ -644,8 +674,11 @@ class Task(Automatic, GameOCR):
                         
                         log.Log(f"重置体力")
                         if not self.wait_and_click(f'{self.rootpic}\\dailytask\\power_panel\\to_min.png', 0, 0, True, True, self.get_curpower_minpower_panel_region, 0.7):
-                            log.Log(f"点击失败", level='ERROR')
-                            return False
+                            if is_clear_flag:
+                                return True
+                            else:
+                                log.Log(f"点击最小值失败", level='ERROR')
+                                return False
                         
                         self.auto_move_mouse(600, 1000)
 
@@ -683,8 +716,11 @@ class Task(Automatic, GameOCR):
                         
                         log.Log(f"重置体力")
                         if not self.wait_and_click(f'{self.rootpic}\\dailytask\\power_panel\\to_min.png', 0, 0, True, True, self.get_curpower_minpower_panel_region, 0.7):
-                            log.Log(f"点击失败", level='ERROR')
-                            return False
+                            if is_clear_flag:
+                                return True
+                            else:
+                                log.Log(f"点击最小值失败", level='ERROR')
+                                return False
                         
                         self.auto_move_mouse(600, 1000)
                         
@@ -1301,7 +1337,7 @@ class Task(Automatic, GameOCR):
         if not self.wait_and_click(f'{self.rootpic}\\dailytask\\buy_free_power\\free_power.png', \
             0, 0, True, threshold=0.92, time_out=self.task_interval_time, is_Log=False):
             log.Log('未找到 免费体力，请检查是否已经领取', level='WARNING')
-            return False
+            return True
         
         # 点击确定
         
@@ -1449,6 +1485,58 @@ class Task(Automatic, GameOCR):
                 
         return True
             
+    # 联防协议 奖励领取
+    def joint_defense_reward(self):
+        log.Log(f"==============正在执行：联防协议 每日奖励领取==============")
+        time.sleep(self.task_interval_time)
+        # 做主界面判断
+        
+        if not self.istargetui('主界面'):
+            log.Log(f'当前界面不在 主界面，该任务请返回到主界面再尝试', level='ERROR')
+            return False
+        
+        # 点击活动 （使用菜单键进行定位）
+        
+        if not self.wait_and_click(f'{self.rootpic}\\dailytask\\mimier\\tap.png', 0, 160, True):
+            log.Log(f'活动点击失败', level='ERROR')
+            return False
+        
+        # 先返回顶部
+        
+        self.auto_wheel(50, 1, 200, 300)
+
+        # 遍历菜单，使用ocr，点击联防协议
+        for i in range(10):
+            time.sleep(self.task_interval_time)
+            img = self.get_game_screenshot()
+            if img is None or img.size == 0:
+                log.Log("未获取到图片", level='ERROR')
+                return False
+            
+            rect = self.find_text(img, '联防协议', self.act_left_region)
+            if rect is not None:
+                if not self.auto_click('-', rect[0], rect[1], False):
+                    log.Log(f"联防协议点击失败", level="ERROR")
+                    return False
+                else:
+                    break
+        
+            # 下滑
+            self.auto_wheel(10, -1, 200, 300)
+            
+            
+        # 一键领取资源
+        
+        if not self.wait_and_click(f'{self.rootpic}\\dailytask\\clear_power\\joint_defense_main_oneclick.png', \
+            0, 0, True, True, self.jointDefense_main_oneclick_region, time_out=self.task_interval_time, is_Log=False):
+            log.Log(f"一键领取资源失败，可能是无资源领取", level="WARNING")
+        else:  
+            self.wait_and_click(f'{self.rootpic}\\dailytask\\clear_power\\continue.png', \
+                0, 0, True)
+            
+        return True
+    
+    
     # 联防协议 失序关
     def joint_defense_disorder(self, mode='mopup',consume_communication=-1):
         '''
