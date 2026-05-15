@@ -216,6 +216,7 @@ class MainWindow(FluentWindow):
             "联防协议": 3
         }
         # 一条龙特殊设置
+        self.awcnt_clear_power_target_step2 = 5
         self.is_standby = True
         self.joint_is_refresh = True
         self.joint_must_s = True
@@ -379,6 +380,7 @@ class MainWindow(FluentWindow):
         self.target_power = target_power_val  # 同步到类变量
         
         # 一条龙特殊设置
+        self.awcnt_clear_power_target_step2 = getattr(self, 'awcnt_clear_power_target_step2_QSpinBox', None).value() if hasattr(self, 'awcnt_clear_power_target_step2_QSpinBox') else self.awcnt_clear_power_target_step2
         self.is_standby = getattr(self, 'is_standby_switch', None).isChecked() if hasattr(self, 'is_standby_switch') else self.is_standby
         self.joint_is_refresh = getattr(self, 'joint_is_refresh_switch', None).isChecked() if hasattr(self, 'joint_is_refresh_switch') else self.joint_is_refresh
         self.joint_must_s = getattr(self, 'joint_must_s_switch', None).isChecked() if hasattr(self, 'joint_must_s_switch') else self.joint_must_s
@@ -437,6 +439,7 @@ class MainWindow(FluentWindow):
         self.config.set("POWER", "target_power", self.target_power)
         
         # 一条龙特殊设置
+        self.config.set("onedragonSpcial", "awcnt_clear_power_target_step2", str(self.awcnt_clear_power_target_step2))
         self.config.set("onedragonSpcial", "is_standby", str(self.is_standby))
         self.config.set("onedragonSpcial", "mode", self.mode)
         self.config.set("onedragonSpcial", "find_second_dengeon_panel_time", str(self.find_second_dengeon_panel_time))
@@ -497,6 +500,7 @@ class MainWindow(FluentWindow):
             self.deplete_power = self.config.getboolean("POWER", "deplete_power", fallback=True)
             self.target_power = self.config.get("POWER", "target_power", fallback="0")
             # 一条龙特殊设置
+            self.awcnt_clear_power_target_step2 = self.config.getint("onedragonSpcial", "awcnt_clear_power_target_step2", fallback=5)
             self.is_standby = self.config.getboolean("onedragonSpcial", "is_standby", fallback=True)
             self.joint_is_refresh = self.config.getboolean("onedragonSpcial", "joint_is_refresh", fallback=True)
             self.joint_must_s = self.config.getboolean("onedragonSpcial", "joint_must_s", fallback=True)
@@ -544,6 +548,7 @@ class MainWindow(FluentWindow):
             self.deplete_power = True
             self.target_power = "0"
             # 一条龙特殊设置
+            self.awcnt_clear_power_target_step2 = 5
             self.is_standby = True
             self.joint_is_refresh = True
             self.joint_must_s = True
@@ -821,6 +826,18 @@ class MainWindow(FluentWindow):
         special_setting_title_layout.addWidget(special_setting_icon)
         special_setting_title_layout.addWidget(QLabel("特殊设置", self.oneDragonInterface))
         special_setting_layout.addLayout(special_setting_title_layout)
+        
+        # 清体力任务普通副本界面选择滚轮的滚动次数
+        awcnt_clear_power_target_step2_layout = QHBoxLayout()
+        awcnt_clear_power_target_step2_layout.addWidget(QLabel("清体力任务普通副本界面选择滚轮的滚动次数(如果发现划不动，可以适当增加该值)", self.oneDragonInterface))
+        awcnt_clear_power_target_step2_layout.addStretch(1)
+        self.awcnt_clear_power_target_step2_QSpinBox = QSpinBox(self.oneDragonInterface)
+        self.awcnt_clear_power_target_step2_QSpinBox.setRange(1, 20)
+        self.awcnt_clear_power_target_step2_QSpinBox.setValue(self.awcnt_clear_power_target_step2)
+        self.awcnt_clear_power_target_step2_QSpinBox.setSuffix(" 次")
+        self.awcnt_clear_power_target_step2_QSpinBox.setFixedWidth(100)
+        awcnt_clear_power_target_step2_layout.addWidget(self.awcnt_clear_power_target_step2_QSpinBox)
+        special_setting_layout.addLayout(awcnt_clear_power_target_step2_layout)
         
         # 是否启用备用副本开关
         is_standby_layout = QHBoxLayout()
@@ -1159,6 +1176,7 @@ class MainWindow(FluentWindow):
         self.check_deplete_power.stateChanged.connect(self.toggle_power_input)
         self.target_power_input.textChanged.connect(self.save_config)
         # 一条龙特殊设置
+        self.awcnt_clear_power_target_step2_QSpinBox.valueChanged.connect(self.save_config)
         self.is_standby_switch.checkedChanged.connect(self.save_config)
         self.joint_is_refresh_switch.checkedChanged.connect(self.save_config)
         self.joint_must_s_switch.checkedChanged.connect(self.save_config)
@@ -1382,7 +1400,8 @@ class TaskThread(QThread):
             task_interval_time=self.main_window.task_interval_time,
             pause_stop_check=self.check_state,
             get_stack_time = get_stack_time_translate.get(self.main_window.mimier_get_stack_time, 6),
-            delay=self.main_window.global_interval_time / 1000
+            delay=self.main_window.global_interval_time / 1000,
+            awcnt_clear_power_target_step2=self.main_window.awcnt_clear_power_target_step2
         )
         
         self.t.taskdic = {

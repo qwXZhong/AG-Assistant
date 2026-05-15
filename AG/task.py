@@ -12,7 +12,8 @@ class Task(Automatic, GameOCR):
                     consume_power=-1, is_exhausted=False, is_standby=True, \
                     standby_target='酬金委托', standby_target_number=5, joint_is_refresh=True,\
                           joint_must_s=True, get_stack_time=6, interval_time=0.02, time_out=10, task_interval_time=2, delay=0.5,\
-                 ocr_use_gpu=False, ocr_collect_time=20, template_resolution='1920*1200', pause_stop_check=None):
+                 ocr_use_gpu=False, ocr_collect_time=20, template_resolution='1920*1200', pause_stop_check=None,\
+                     awcnt_clear_power_target_step2=5):
         '''
         target 目标副本
         number 目标副本等级
@@ -29,6 +30,8 @@ class Task(Automatic, GameOCR):
         task_interval_time 任务间的间隔
         
         template_resolution 匹配的模板分辨率
+        
+        awcnt_clear_power_target_step2 清体力任务普通副本界面选择滚轮的滚动次数
         
         Automatic::interval_time, time_out, delay, pause_stop_check
         GameOCR::ocr_use_gpu, ocr_collect_time
@@ -105,6 +108,8 @@ class Task(Automatic, GameOCR):
         self.joint_is_refresh = joint_is_refresh              
         self.joint_must_s = joint_must_s
         self.get_stack_time = get_stack_time
+        
+        self.awcnt_clear_power_target_step2 = awcnt_clear_power_target_step2
 
         # 常用区域
         # 主界面下操作栏（修正者，探测...)
@@ -546,7 +551,7 @@ class Task(Automatic, GameOCR):
             if target in target_step2.keys():
                 # 返回最左侧
 
-                self.auto_wheel(50, -1, 500, 900)
+                self.auto_wheel(80, -1, 500, 900)
                 
 
                 # 循环遍历目标，若上一个识别的目标与下一个识别的目标相同，则结束
@@ -577,7 +582,7 @@ class Task(Automatic, GameOCR):
                     pre_text = res[0][1]
 
                     # 滚轮滑动
-                    self.auto_wheel(5, 1, 500, 900)
+                    self.auto_wheel(self.awcnt_clear_power_target_step2, 1, 500, 900)
                     
 
                     if i == find_time - 1: 
@@ -668,7 +673,10 @@ class Task(Automatic, GameOCR):
                         # 循环选择副本
                         time.sleep(self.task_interval_time)
                         if not self.joint_second_panel(joint_is_refresh, joint_must_s):
-                            return False
+                            if is_clear_flag:
+                                return True
+                            else:
+                                return False
 
                         # 重置，将体力消耗调整为最低
                         
@@ -700,7 +708,10 @@ class Task(Automatic, GameOCR):
                         # 清体力
                         
                         if not self.common_power_panel(mode, consume_power, is_exhausted, is_pd=False):
-                            return False
+                            if is_clear_flag:
+                                return True
+                            else:
+                                return False
                         
                         
                     # 耗尽模式,在指定值下无效
@@ -708,7 +719,10 @@ class Task(Automatic, GameOCR):
                         # 循环选择副本
                         time.sleep(self.task_interval_time)
                         if not self.joint_second_panel(joint_is_refresh, joint_must_s):
-                            return False
+                            if is_clear_flag:
+                                return True
+                            else:
+                                return False
                         
                         
                         
@@ -737,7 +751,10 @@ class Task(Automatic, GameOCR):
                         # 清体力
                         
                         if not self.common_power_panel(mode, consume_power, is_exhausted, False):
-                            return False
+                            if is_clear_flag:
+                                return True
+                            else:
+                                return False
                         
 
             else:
@@ -1014,7 +1031,8 @@ class Task(Automatic, GameOCR):
             'A': [f'{self.rootpic}\\dailytask\\clear_power\\level_A.png', 
                   f'{self.rootpic}\\dailytask\\clear_power\\level_A2.png'],
             'B': [f'{self.rootpic}\\dailytask\\clear_power\\level_B.png', 
-                  f'{self.rootpic}\\dailytask\\clear_power\\level_B2.png'],
+                  f'{self.rootpic}\\dailytask\\clear_power\\level_B2.png',
+                  f'{self.rootpic}\\dailytask\\clear_power\\level_B3.png'],
         }
         pos_list = self.joint_second_panel_level_region
         # 获取当前界面等级
@@ -1127,7 +1145,8 @@ class Task(Automatic, GameOCR):
             # 找B
             for i in range(len(res_level)):
                 if self.auto_click(priority_dic['B'][0], 0, 0, True, True, res_pos[i], 0.9) or\
-                    self.auto_click(priority_dic['B'][1], 0, 0, True, True, res_pos[i], 0.9):
+                    self.auto_click(priority_dic['B'][1], 0, 0, True, True, res_pos[i], 0.9) or\
+                    self.auto_click(priority_dic['B'][2], 0, 0, True, True, res_pos[i], 0.9)    :
                     
                     return True
         
